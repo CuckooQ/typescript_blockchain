@@ -1,43 +1,81 @@
-/*
-interface Person {
-    name: string;
-    age: number;
-    gender: string;
-}
-const cuckoo: Person = {
-    name: "cuckoo",
-    age: 100,
-    gender: "male"
-};
-*/
+import  * as CryptoJS from "crypto-js";
 
-class Person {
-    public name: string;
-    public age: number;
-    public gender: string;
+class Block {
+    public index: number;
+    public hash: string;
+    public previousHash: string;
+    public data: string;
+    public timestamp: number;
 
-    constructor(name: string, age: number, gender: string) {
-        this.name = name;
-        this.age = age;
-        this.gender = gender;
+    static calculateBlockHash = (
+        index: number, 
+        previousHash: string, 
+        timestamp: number, 
+        data: string
+    ): string => CryptoJS.SHA256(index + previousHash + timestamp + data).toString();
+    
+    static validateStructor = (aBlock: Block): boolean => 
+        typeof aBlock.index === "number" && 
+        typeof aBlock.hash === "string" && 
+        typeof aBlock.previousHash === "string" &&
+        typeof aBlock.timestamp === "number" &&
+        typeof aBlock.data === "string";
+
+    constructor(
+        index: number,
+        hash: string,
+        previousHash: string,
+        data: string,
+        timestamp: number,
+    ){
+        this.index = index;
+        this.hash = hash;
+        this.previousHash = previousHash;
+        this.data = data;
+        this.timestamp = timestamp;
     }
 }
 
-const name: string = "cuckoo";
-const age: number = 100;
-const gender: string = "male";
-const cuckoo: Person = new Person(name, age, gender);
+const genesisBlock: Block = new Block(0, "2020202020202", "", "Hello", 123456);
+const blockChain: [Block] = [genesisBlock];
 
-const sayHello = (person: Person): string => {
-    return `Hello ${person.name}! you are ${person.age}, you are a ${person.gender}.`;
+const getBlockChain = (): Block[] => blockChain;
+
+const getLatestBlock = (): Block => getBlockChain()[blockChain.length -1];
+
+const getNewTimeStamp = (): number => Math.round(new Date().getTime() / 1000);
+
+const getHashforBlock = (aBlock: Block) => Block.calculateBlockHash(aBlock.index, aBlock.previousHash, aBlock.timestamp, aBlock.data); 
+
+const isBlockValid = (candidateBlock: Block, previousBlock: Block): boolean => {
+    if (!Block.validateStructor(candidateBlock) ||
+        previousBlock.index + 1 !== candidateBlock.index || 
+        previousBlock.hash !== candidateBlock.previousHash || 
+        getHashforBlock(candidateBlock) !== candidateBlock.hash
+    ){
+        return false;
+    } 
+
+    return true;
 }
 
-const consoleLog = (logMessage: string): void => {
-    console.log(logMessage);
+const createNewBlock = (data: string): Block => {
+    const previousBlock: Block = getLatestBlock();
+    const newIndex: number = previousBlock.index + 1;
+    const newTimestamp : number = getNewTimeStamp();
+    const newHash: string = Block.calculateBlockHash(newIndex, previousBlock.hash, newTimestamp, data);
+    const newBlock: Block = new Block(newIndex, newHash, previousBlock.hash, data, newTimestamp);
+    return newBlock;
 }
 
-const logMessage: string = sayHello(cuckoo);
-consoleLog(logMessage);
+const addBlock = (candidateBlock: Block): void => {
+    isBlockValid(candidateBlock, getLatestBlock()) && blockChain.push(candidateBlock);
+}
+
+const newBlock: Block = createNewBlock("Hellllllo!");
+addBlock(newBlock);
+
+console.log(blockChain);
 
 // if it's not, error occur.
 export {};
